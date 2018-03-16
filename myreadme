@@ -53,6 +53,7 @@ Problems:
  * have to save netcdf files to -180:180 
 	do know how to shift properly from js ?
  * antemeridian isocontours are not correct with uwnd.nc
+ * missing value like in temp.nc
 
 TODO: 
  * button to read new file

@@ -96,7 +96,7 @@ var projectionsList = [
 var projectionSelected = projectionsList[0]; 
 var lon0 = lat0 = 0.;
 
-var urlpath =  "etopo60_2.nc"
+var urlpath =  "temp.nc"
 var reader;
 var values;
 
@@ -112,7 +112,7 @@ oReq.onload = function(oEvent) {
   //====================================================================================
     reader = new netcdfjs(this.result);
 
-    values = reader.getDataVariable('ROSE');
+    values = reader.getDataVariable('TEMP');
     var isize = reader.dimensions[0].size;
     var jsize = reader.dimensions[1].size;;
 
@@ -145,6 +145,7 @@ function redraw(lon0, lat0, projection) {
   var graticule = d3.geoGraticule();
 
   var contours = d3.contours()
+      .thresholds([0, 2, 4, 10, 12, 16])
       .smooth(true)
       .size([isize, jsize]);
 
