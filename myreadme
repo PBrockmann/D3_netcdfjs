@@ -11,7 +11,23 @@ bower install numjs
 ls ~/bower_components/numjs/dist/numjs.js
 
 #=================================================================================
-Tested with firefox and google-chrome --disable-web-security --user-data-dir
+http://geoexamples.com/d3/2017/11/04/raster-file-formats.html#html-example-1
+
+https://www.npmjs.com/package/netcdfjs
+https://github.com/cheminfo-js/netcdfjs
+
+contours with d3.js
+http://bl.ocks.org/rveciana/de0bd586eafd7fcdfe29227ccbdcd511
+GeoTIFF Contours II
+https://bl.ocks.org/mbostock/83c0be21dba7602ee14982b020b12f51
+
+geoTIFF and leaflet
+https://github.com/GeoTIFF/georaster-layer-for-leaflet
+https://github.com/IHCantabria/Leaflet.CanvasLayer.Field
+https://github.com/stuartmatthews/leaflet-geotiff
+
+#=================================================================================
+Tested with firefox and google-chrome
 
 If CORS (Cross-Origin Resource Sharing) problem, use:
  google-chrome --disable-web-security --user-data-dir
