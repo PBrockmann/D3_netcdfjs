@@ -1,5 +1,16 @@
 
 #=================================================================================
+d3 js from http://unpkg.com/
+
+netcdfjs from https://github.com/cheminfo-js/netcdfjs
+npm install netcdfjs
+ls ~/node_modules/netcdfjs/dist/netcdfjs.js
+
+numjs from https://www.npmjs.com/package/numjs
+bower install numjs
+ls ~/bower_components/numjs/dist/numjs.js
+
+#=================================================================================
 Tested with firefox and google-chrome --disable-web-security --user-data-dir
 
 If CORS (Cross-Origin Resource Sharing) problem, use:
