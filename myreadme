@@ -1,0 +1,36 @@
+
+#=================================================================================
+Tested with firefox and google-chrome --disable-web-security --user-data-dir
+
+If CORS (Cross-Origin Resource Sharing) problem, use:
+ google-chrome --disable-web-security --user-data-dir
+
+#=================================================================================
+netcdfjs_01.html
+--> reading temp.nc
+
+netcdfjs_02.html
+--> reading uwnd.nc
+
+netcdfjs_03.html
+--> reading etopo_2.nc and display a projection
+
+netcdfjs_04.html
+--> reading etopo60_2.nc and display a projection from menu
+
+netcdfjs_05.html
+--> reading uwnd_2.nc and display a projection from menu
+
+#=================================================================================
+Problems:
+ * have to save netcdf files to -180:180 
+	do know how to shift properly from js ?
+ * antemeridian isocontours are not correct with uwnd.nc
+
+TODO: 
+ * button to read new file
+ * problem with netcdfjs that allow only read all the dimension (have to be
+   only (lat, lon) not (time, lat, lon)
+ * synchroneous maps
+ * click to define new center rather than sliders https://bl.ocks.org/mbostock/3795040
+	interactive_orthographic_02.html

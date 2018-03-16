@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src='js/netcdfjs.js'></script>
+</head>
+
+<body>
+
+<script type='text/javascript'>
+
+//var urlpath =  "http://www.unidata.ucar.edu/software/netcdf/examples/madis-sao.nc"
+var urlpath =  "temp.nc"
+var reader;
+
+var oReq = new XMLHttpRequest();
+oReq.open("GET", urlpath, true);
+oReq.responseType = "blob";
+
+oReq.onload = function(oEvent) {
+  var blob = oReq.response;
+  reader_url = new FileReader();
+  
+  reader_url.onload = function(e) {
+    reader = new netcdfjs(this.result);
+
+    var dataValues = reader.getDataVariable('TEMP');
+    console.log(dataValues.length);
+    console.log(dataValues);
+  }
+      
+  reader_url.readAsArrayBuffer(blob);
+  
+};
+oReq.send(); //start process
+
+
+</script>
+</body>
+</html>
