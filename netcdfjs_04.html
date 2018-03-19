@@ -182,8 +182,9 @@ function redraw(lon0, lat0, projection) {
     // Record the y-intersections with the antimeridian.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
-        if (p[0] === -180) shared[p[1]] |= 1;
-        else if (p[0] === 180) shared[p[1]] |= 2;
+	if (p[0] === -180 || p[0] === 180) {
+		shared[p[1]] |= p[0] === -180 ? 1 : 2;
+	}
       });
     });
     // Offset any unshared antimeridian points to prevent their stitching.

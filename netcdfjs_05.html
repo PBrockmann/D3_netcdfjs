@@ -96,8 +96,7 @@ var projectionsList = [
 var projectionSelected = projectionsList[0]; 
 var lon0 = lat0 = 0.;
 
-//var urlpath =  "etopo60_2.nc"
-var urlpath =  "uwnd_2.nc"
+var urlpath =  "uwnd_3.nc"
 var reader;
 var values;
 
@@ -113,7 +112,6 @@ oReq.onload = function(oEvent) {
   //====================================================================================
     reader = new netcdfjs(this.result);
 
-    //values = reader.getDataVariable('ROSE');
     values = reader.getDataVariable('UWND');
     var isize = reader.dimensions[0].size;
     var jsize = reader.dimensions[1].size;;
@@ -184,10 +182,12 @@ function redraw(lon0, lat0, projection) {
     // Record the y-intersections with the antimeridian.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
-        if (p[0] === -180) shared[p[1]] |= 1;
-        else if (p[0] === 180) shared[p[1]] |= 2;
+	if (p[0] === -180 || p[0] === 180) {
+		shared[p[1]] |= p[0] === -180 ? 1 : 2;
+	}
       });
     });
+
     // Offset any unshared antimeridian points to prevent their stitching.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
