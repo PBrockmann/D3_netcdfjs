@@ -147,7 +147,7 @@ function redraw(lon0, lat0, projection) {
   var graticule = d3.geoGraticule();
 
   var contours = d3.contours()
-      .smooth(false)
+      .smooth(true)
       .size([isize, jsize]);
 
   var svg = d3.select("#map1");
@@ -216,7 +216,7 @@ function redraw(lon0, lat0, projection) {
   // https://unpkg.com/world-atlas@1/world/110m.json
   d3.json("world-110m.json", function(error, world) {
   	if (error) throw error;
-  		g.insert("path", ".graticule")
+  		g.append("path")
       			.datum(topojson.feature(world, world.objects.land))
       			.attr("class", "land")
       			.attr("d", path);
