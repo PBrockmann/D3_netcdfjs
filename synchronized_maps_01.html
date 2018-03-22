@@ -49,7 +49,7 @@ function zoomed() {
     var transform = d3.event.transform;
     var k = Math.sqrt(100 / projection.scale());
     projection.scale(scale * transform.k)
-    updatePaths(svg, graticule, world, geoPath);
+    updatePaths(svg);
 };
 
 //--------------------------------------
@@ -59,15 +59,15 @@ function dragged(d) {
       y: phi((d.y = d3.event.y))
     };
     projection.rotate([origin.x + r.x, origin.y + r.y]);
-    updatePaths(svg, graticule, world, geoPath);
+    updatePaths(svg);
 };
 
 //--------------------------------------
-function updatePaths(svg, graticule, world, geoPath) {
+function updatePaths(svg) {
 
      svg.forEach(function(e) {
-     	e.selectAll('path.graticule').datum(graticule).attr('d', geoPath);
-     	e.selectAll('path.land').datum(world).attr('d', geoPath);
+     	e.selectAll('path.graticule').attr('d', geoPath);
+     	e.selectAll('path.land').attr('d', geoPath);
      });
 };
 
@@ -125,12 +125,11 @@ var projection = d3.geoOrthographic()
 var geoPath = d3.geoPath()
     .projection(projection);
 
-var graticule = d3.geoGraticule();
-
 //==========================================
 d3.json("world-110m.json", function(error, worldJSON) {
   if (error) throw error;
   world = topojson.feature(worldJSON, worldJSON.objects.land);
+  graticule = d3.geoGraticule();
 
   svg1 = createMap("#map1");
   svg.push(svg1);
