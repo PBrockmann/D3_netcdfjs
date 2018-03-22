@@ -94,7 +94,9 @@ var projectionsList = [
 ];
 
 var projectionSelected = projectionsList[0]; 
-var lon0 = lat0 = 0.;
+//var lon0 = lat0 = 0.;
+var lon0 = 100;
+var lat0 = 0.;
 
 var urlpath =  "uwnd_3.nc"
 var reader;
@@ -145,7 +147,7 @@ function redraw(lon0, lat0, projection) {
   var graticule = d3.geoGraticule();
 
   var contours = d3.contours()
-      .smooth(true)
+      .smooth(false)
       .size([isize, jsize]);
 
   var svg = d3.select("#map1");

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+</style>
+<body>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="https://unpkg.com/geotiff@0.4/dist/geotiff.browserify.min.js"></script>
+
+<script>
+var width = 680,
+    height = 500;
+
+var projection = d3.geoAzimuthalEqualArea()
+    .rotate([-55.5, -24])
+    .scale(1100);
+
+var canvas = d3.select("body").append("canvas")
+    .attr("width", width)
+    .attr("height", height);
+
+var context = canvas.node().getContext("2d");
+d3.request("tz850.tiff")
+  .responseType('arraybuffer')
+  .get(function(error, tiffData){
+d3.json("world-110m.json", function(error, topojsonData) {
+  var countries = topojson.feature(topojsonData, topojsonData.objects.countries);
+  var path = d3.geoPath()
+      .projection(projection).context(context);
+
+  context.beginPath();
+  context.strokeStyle = "#777";
+  context.fillStyle = "#aaa";
+  path(countries);
+  context.fill();
+  context.stroke();
+
+  var tiff = GeoTIFF.parse(tiffData.response);
+  var image = tiff.getImage();
+  var rasters = image.readRasters();
+  var tiepoint = image.getTiePoints()[0];
+  var pixelScale = image.getFileDirectory().ModelPixelScale;
+  var geoTransform = [tiepoint.x, pixelScale[0], 0, tiepoint.y, 0, -1*pixelScale[1]];
+  var invGeoTransform = [-geoTransform[0]/geoTransform[1], 1/geoTransform[1],0,-geoTransform[3]/geoTransform[5],0,1/geoTransform[5]];
+
+  var tempData = new Array(image.getHeight());
+  for (var j = 0; j<image.getHeight(); j++){
+      tempData[j] = new Array(image.getWidth());
+      for (var i = 0; i<image.getWidth(); i++){
+          tempData[j][i] = rasters[1][i + j*image.getWidth()];
+      }
+  }
+
+
+  //Creating the color scale https://github.com/santilland/plotty/blob/master/src/plotty.js
+  var cs_def = {positions:[0, 0.25, 0.5, 0.75, 1], colors:["#0571b0", "#92c5de", "#f7f7f7", "#f4a582", "#ca0020"]};
+  var scaleWidth = 256;
+  var canvasColorScale = d3.select("body").append("canvas")
+      .attr("width", scaleWidth)
+      .attr("height", 1)
+      .style("display","none");
+  var contextColorScale = canvasColorScale.node().getContext("2d");
+  var gradient = contextColorScale.createLinearGradient(0, 0, scaleWidth, 1);
+
+  for (var i = 0; i < cs_def.colors.length; ++i) {
+    gradient.addColorStop(cs_def.positions[i], cs_def.colors[i]);
+  }
+  contextColorScale.fillStyle = gradient;
+  contextColorScale.fillRect(0, 0, scaleWidth, 1);
+
+  var csImageData = contextColorScale.getImageData(0, 0, scaleWidth-1, 1).data;
+
+  //Drawing the image
+  var canvasRaster = d3.select("body").append("canvas")
+      .attr("width", width)
+      .attr("height", height)
+      .style("display","none");
+
+  var contextRaster = canvasRaster.node().getContext("2d");
+
+  var id = contextRaster.createImageData(width,height);
+  var data = id.data;
+  var pos = 0;
+  for(var j = 0; j<height; j++){
+    for(var i = 0; i<width; i++){
+      var pointCoords = projection.invert([i,j]);
+      var px = Math.round(invGeoTransform[0] + pointCoords[0]* invGeoTransform[1]);
+      var py = Math.round(invGeoTransform[3] + pointCoords[1] * invGeoTransform[5]);
+
+      if(Math.floor(px) >= 0 && Math.ceil(px) < image.getWidth() && Math.floor(py) >= 0 && Math.ceil(py) < image.getHeight()){
+        var value = tempData[py][px];
+
+        var c = Math.round((scaleWidth-1) * ((value - 14)/24));
+        var alpha = 200;
+        if (c<0 || c > (scaleWidth-1)){
+          alpha = 0;
+        }
+        data[pos]   = csImageData[c*4];;
+        data[pos+1]   = csImageData[c*4+1];
+        data[pos+2]   = csImageData[c*4+2];
+        data[pos+3]   = alpha;
+        pos = pos + 4
+      }
+    }
+  }
+  contextRaster.putImageData( id, 0, 0);
+  context.drawImage(canvasRaster.node(), 0, 0);
+
+
+});
+});
+</script>
+
+</body>
