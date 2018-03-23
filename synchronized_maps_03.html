@@ -122,12 +122,6 @@ function createMap(id, values, range) {
    .enter().append("path")
    .attr('class', 'contours')
    .attr("fill", function(d) { return color(d.value); })
-   //.attr("fill", function(d) {
-   //	console.log(d.value); 
-   //	if (d.value < range[0]) return color(range[0]);
-   //	else if (d.value > range[1]) return color(range[1]);
-   //	else return color(d.value);
-   // })
    .attr("d", geoPath);
 
   group.append('path')
