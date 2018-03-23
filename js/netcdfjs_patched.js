@@ -163,6 +163,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        // go to the offset position
 	        this.buffer.seek(variable.offset);
 
+		console.log(variable.record);
 	        if (variable.record) {
 	            // record variable case
 	            return data.record(this.buffer, variable, this.header.recordDimension);
