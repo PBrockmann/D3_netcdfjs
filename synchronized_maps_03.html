@@ -107,10 +107,11 @@ function createMap(id, values, range) {
 
   var group = svg.append("g").datum([]);
 
-  console.log(d3.range(range[0], range[1]+1, 1));
+  var extent = d3.extent(values);
+  console.log(Math.floor(extent[0]), Math.ceil(extent[1]));
 
   var contours = d3.contours()
-      .thresholds(d3.range(range[0]-10, range[1]+1, 1))
+      .thresholds(d3.range(Math.floor(extent[0]), Math.ceil(extent[1]), 1))
       .smooth(true)
       .size([isize, jsize]);
 
@@ -120,13 +121,13 @@ function createMap(id, values, range) {
    .data(contours(values).map(invert))
    .enter().append("path")
    .attr('class', 'contours')
-   //.attr("fill", function(d) { return color(d.value); })
-   .attr("fill", function(d) {
-	console.log(d.value); 
-	if (d.value < range[0]) return color(range[0]);
-	else if (d.value > range[1]) return color(range[1]);
-	else return color(d.value);
-    })
+   .attr("fill", function(d) { return color(d.value); })
+   //.attr("fill", function(d) {
+   //	console.log(d.value); 
+   //	if (d.value < range[0]) return color(range[0]);
+   //	else if (d.value > range[1]) return color(range[1]);
+   //	else return color(d.value);
+   // })
    .attr("d", geoPath);
 
   group.append('path')
@@ -213,15 +214,16 @@ var phi = d3.scaleLinear()
     .range([90, -90]);
 
 var projection = d3.geoOrthographic()
+//var projection = d3.geoRobinson()
     .scale(scale)
     .translate([width / 2, height / 2])
     .rotate([origin.x, origin.y])
     .center([0, 0]);
-	
+
 var geoPath = d3.geoPath()
     .projection(projection);
 
-var range = [-9, 9];
+var range = [-12, 12];
 
 var color = d3.scaleSequential(d3.interpolatePlasma)
       .domain(range);
@@ -260,10 +262,12 @@ oReq.onload = function(oEvent) {
       if (error) throw error;
       world = topojson.feature(worldJSON, worldJSON.objects.land);
       graticule = d3.geoGraticule();
-    
+   
+      console.log(d3.extent(valuesVar1));
       svg1 = createMap("#map1", valuesVar1, range);
       svg.push(svg1);
     
+      console.log(d3.extent(valuesVar2));
       svg2 = createMap("#map2", valuesVar2, range);
       svg.push(svg2);
 
