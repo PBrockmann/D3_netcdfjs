@@ -47,8 +47,7 @@ body, html {
 //--------------------------------------
 function zoomed() {
     var transform = d3.event.transform;
-    var k = Math.sqrt(100 / projection.scale());
-    projection.scale(scale * transform.k)
+    projection.scale(scale * transform.k);
     updatePaths(svg);
 };
 
