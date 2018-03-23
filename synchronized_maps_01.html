@@ -118,8 +118,7 @@ var projection = d3.geoOrthographic()
     .scale(scale)
     .translate([width / 2, height / 2])
     .rotate([origin.x, origin.y])
-    .center([0, 0])
-    .clipAngle(90);
+    .center([0, 0]);
 
 var geoPath = d3.geoPath()
     .projection(projection);
