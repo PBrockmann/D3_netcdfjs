@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<head>
+
+<meta charset="utf-8">
+<style>
+body, html {
+  font-family: arial;
+}
+.map {
+  float: left;
+  padding: 5px;
+  border: solid 1px #eee;
+  border-radius: 5px;
+}
+.map .title {
+  float: right;
+}
+.graticule {
+  fill: none;
+  stroke: #777;
+  stroke-width: .5px;
+  stroke-opacity: .5;
+  pointer-events: all;
+}
+.land {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1;
+}
+.contour-stroke {
+  stroke: #000;
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+.legend { 
+  position: absolute;
+  top: 60px;
+  left: 960px;
+  font-size: 12px;
+}
+</style>
+
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script src="js/netcdfjs.js"></script>
+<script src="js/numjs.js"></script>
+<script src="js/d3-contour@1"></script>
+<script src="js/d3-color@1"></script>
+<script src="js/d3-geo@1"></script>
+<script src="js/d3-geo-projection@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.5/d3-legend.min.js"></script>
+
+</head>
+
+<body>
+
+<p>Synchronized maps
+
+<p>
+<div id="map1" class="map">
+	<div class="title">uwnd</div>
+</div>
+<div id="map2" class="map">
+	<div class="title">uwnd</div>
+</div>
+
+<div id="legend" class="legend">
+</div>
+
+<script>
+
+// https://stackoverflow.com/questions/43772975/drag-rotate-projection-in-d3-v4
+
+//--------------------------------------
+function zoomed() {
+    var transform = d3.event.transform;
+    projection.scale(scale * transform.k);
+    updatePaths(svg);
+};
+
+//--------------------------------------
+function dragged(d) {
+    var r = {
+      x: lambda((d.x = d3.event.x)),
+      y: phi((d.y = d3.event.y))
+    };
+    projection.rotate([origin.x + r.x, origin.y + r.y]);
+    updatePaths(svg);
+};
+
+//--------------------------------------
+function updatePaths(svg) {
+
+     svg.forEach(function(e) {
+     	e.selectAll('path.contours').attr("d", geoPath);
+     	e.selectAll('path.graticule').attr('d', geoPath);
+     	e.selectAll('path.land').attr('d', geoPath);
+     });
+};
+
+//--------------------------------------
+function createMap(id, values, range) {
+
+  var svg = d3.select('body').select(id).append('svg')
+    .attr('width', width)
+    .attr('height', height);
+
+  var group = svg.append("g").datum([]);
+
+  console.log(d3.range(range[0], range[1]+1, 1));
+
+  var contours = d3.contours()
+      .thresholds(d3.range(range[0]-10, range[1]+1, 1))
+      .smooth(true)
+      .size([isize, jsize]);
+
+  group
+   //.attr("class", "contour-stroke")
+   .selectAll("path")
+   .data(contours(values).map(invert))
+   .enter().append("path")
+   .attr('class', 'contours')
+   //.attr("fill", function(d) { return color(d.value); })
+   .attr("fill", function(d) {
+	console.log(d.value); 
+	if (d.value < range[0]) return color(range[0]);
+	else if (d.value > range[1]) return color(range[1]);
+	else return color(d.value);
+    })
+   .attr("d", geoPath);
+
+  group.append('path')
+    .datum(graticule)
+    .attr('class', 'graticule')
+    .attr('d', geoPath);
+
+  group.append("path")
+      .datum(world)
+      .attr("class", "land")
+      .attr("d", geoPath);
+
+  // zoom on svg; drag on group
+  group.call(d3.drag().on('drag', dragged));
+  svg.call(d3.zoom().on('zoom', zoomed));
+
+  return svg;
+}
+
+//==========================================
+function invert(d) {
+    var shared = {};
+    var p = {
+      type: "Polygon",
+      coordinates: d3.merge(d.coordinates.map(function(polygon) {
+        return polygon.map(function(ring) {
+          return ring.map(function(point) {
+            return [point[0] / isize * 360 - 180, 90 - point[1] / jsize * 180];
+          }).reverse();
+        });
+      }))
+    };
+    // Record the y-intersections with the antimeridian.
+    p.coordinates.forEach(function(ring) {
+      ring.forEach(function(p) {
+        if (p[0] === -180 || p[0] === 180) {
+                shared[p[1]] |= p[0] === -180 ? 1 : 2;
+        }
+      });
+    });
+
+    // Offset any unshared antimeridian points to prevent their stitching.
+    p.coordinates.forEach(function(ring) {
+      ring.forEach(function(p) {
+        if ((p[0] === -180 || p[0] === 180) && shared[p[1]] !== 3) {
+          p[0] = p[0] === -180 ? -179.9995 : 179.9995;
+        }
+      });
+    });
+
+    p = d3.geoStitch(p);
+
+    // If the MultiPolygon is empty, treat it as the Sphere.
+    return p.coordinates.length
+        ? {type: "Polygon", coordinates: p.coordinates, value: d.value}
+        : {type: "Sphere", value: d.value};
+}
+
+//==========================================
+function reverseVar(values) {
+    values = nj.array(values).reshape(jsize,isize);             //  a matrix with n rows and m columns, shape will be [n,m].
+    values = values.slice([null, null, -1],null);
+    values = values.flatten().tolist();
+
+    return values;
+}
+
+//==========================================
+var svg = [];
+var world;
+var graticule;
+
+var width = 400,
+    height = 400,
+    scale = 200,
+    origin = {x: 55, y: -40};
+
+var lambda = d3.scaleLinear()
+    .domain([-width, width])
+    .range([-180, 180])
+
+var phi = d3.scaleLinear()
+    .domain([-height, height])
+    .range([90, -90]);
+
+var projection = d3.geoOrthographic()
+    .scale(scale)
+    .translate([width / 2, height / 2])
+    .rotate([origin.x, origin.y])
+    .center([0, 0])
+    .clipAngle(90);
+
+var geoPath = d3.geoPath()
+    .projection(projection);
+
+var range = [-9, 9];
+
+var color = d3.scaleSequential(d3.interpolatePlasma)
+      .domain(range);
+
+//==========================================
+var urlpath =  "navy_winds_2.nc"
+var reader;
+var isize, jsize;
+
+var oReq = new XMLHttpRequest();
+oReq.open("GET", urlpath, true);
+oReq.responseType = "blob";
+
+oReq.onload = function(oEvent) {
+  var blob = oReq.response;
+  reader_url = new FileReader();
+  
+  reader_url.onload = function(e) {
+  //====================================================================================
+    reader = new netcdfjs(this.result);
+
+    isize = reader.dimensions[0].size;
+    jsize = reader.dimensions[1].size;
+
+    var dim0Name = reader.dimensions[0].name;
+    var dim1Name = reader.dimensions[1].name;
+    axis0 = reader.getDataVariable(dim0Name);
+    axis1 = reader.getDataVariable(dim1Name);
+
+    var valuesVar1 = reader.getDataVariable('UWND');
+    valuesVar1 = reverseVar(valuesVar1);
+    var valuesVar2 = reader.getDataVariable('VWND');
+    valuesVar2 = reverseVar(valuesVar2);
+
+    d3.json("world-110m.json", function(error, worldJSON) {
+      if (error) throw error;
+      world = topojson.feature(worldJSON, worldJSON.objects.land);
+      graticule = d3.geoGraticule();
+    
+      svg1 = createMap("#map1", valuesVar1, range);
+      svg.push(svg1);
+    
+      svg2 = createMap("#map2", valuesVar2, range);
+      svg.push(svg2);
+
+      svgLegend = d3.select("#legend").append('svg')
+                           .attr('width', 60)
+                           .attr('height', 800);
+      svgLegend.append("g").attr("class", "legendLinear");
+      var legendLinear = d3.legendColor()
+                           .shapeWidth(20)
+                           .shapeHeight(20)
+                           .shapePadding(1)
+                           .cells(Math.abs(range[1]-range[0])+1)
+                           .orient('vertical')
+                           .ascending(true)
+                           .labelAlign('start')
+                           .scale(color);
+      console.log(color);
+      svgLegend.select(".legendLinear")
+                        .call(legendLinear);      
+    
+   });
+
+  //====================================================================================
+  }
+
+  reader_url.readAsArrayBuffer(blob);
+
+};
+oReq.send(); //start process
+
+</script>
+
