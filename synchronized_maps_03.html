@@ -48,6 +48,7 @@ body, html {
 <script src="js/d3-color@1"></script>
 <script src="js/d3-geo@1"></script>
 <script src="js/d3-geo-projection@2"></script>
+<script src="js/versor@0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.5/d3-legend.min.js"></script>
 
 </head>
@@ -73,30 +74,35 @@ body, html {
 
 //--------------------------------------
 function zoomed() {
-    var transform = d3.event.transform;
-    projection.scale(scale * transform.k);
-    updatePaths(svg);
-};
+  var transform = d3.event.transform;
+  projection.scale(scale * transform.k);
+  updatePaths(svg);
+}
+
+//--------------------------------------
+function dragstarted() {
+  v0 = versor.cartesian(projection.invert(d3.mouse(this)));
+  r0 = projection.rotate();
+  q0 = versor(r0);
+}
 
 //--------------------------------------
 function dragged(d) {
-    var r = {
-      x: lambda((d.x = d3.event.x)),
-      y: phi((d.y = d3.event.y))
-    };
-    projection.rotate([origin.x + r.x, origin.y + r.y]);
-    updatePaths(svg);
-};
+  var v1 = versor.cartesian(projection.rotate(r0).invert(d3.mouse(this))),
+      q1 = versor.multiply(q0, versor.delta(v0, v1)),
+      r1 = versor.rotation(q1);
+  projection.rotate(r1);
+  updatePaths(svg);
+}
 
 //--------------------------------------
 function updatePaths(svg) {
-
-     svg.forEach(function(e) {
+  svg.forEach(function(e) {
      	e.selectAll('path.contours').attr("d", geoPath);
      	e.selectAll('path.graticule').attr('d', geoPath);
      	e.selectAll('path.land').attr('d', geoPath);
-     });
-};
+  });
+}
 
 //--------------------------------------
 function createMap(id, values) {
@@ -135,7 +141,8 @@ function createMap(id, values) {
       .attr("d", geoPath);
 
   // zoom on svg; drag on group
-  group.call(d3.drag().on('drag', dragged));
+  group.call(d3.drag().on('start', dragstarted)
+		      .on('drag', dragged));
   svg.call(d3.zoom().on('zoom', zoomed));
 
   return svg;
@@ -199,13 +206,9 @@ var width = 400,
     scale = 200,
     origin = {x: 55, y: -40};
 
-var lambda = d3.scaleLinear()
-    .domain([-width, width])
-    .range([-180, 180])
-
-var phi = d3.scaleLinear()
-    .domain([-height, height])
-    .range([90, -90]);
+var v0, // Mouse position in Cartesian coordinates at start of drag gesture.
+    r0, // Projection rotation as Euler angles at start.
+    q0; // Projection rotation as versor at start.
 
 var projection = d3.geoOrthographic()
 //var projection = d3.geoRobinson()
@@ -292,7 +295,7 @@ oReq.onload = function(oEvent) {
 
   reader_url.readAsArrayBuffer(blob);
 
-};
+}
 oReq.send(); //start process
 
 </script>

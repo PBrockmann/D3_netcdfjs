@@ -37,19 +37,20 @@ body, html {
 
 <p>
 <div id="map1" class="map"></div>
-<div id="map2" class="map"></div>
-<div id="map3" class="map"></div>
 
 
 <script>
+
+// https://github.com/Fil/versor
+// https://bl.ocks.org/mbostock/7ea1dde508cec6d2d95306f92642bc42
 
 // https://stackoverflow.com/questions/43772975/drag-rotate-projection-in-d3-v4
 
 //--------------------------------------
 function zoomed() {
-    var transform = d3.event.transform;
-    projection.scale(scale * transform.k);
-    updatePaths(svg);
+  var transform = d3.event.transform;
+  projection.scale(scale * transform.k);
+  updatePaths(svg);
 }
 
 //--------------------------------------
@@ -71,7 +72,7 @@ function dragged(d) {
 //--------------------------------------
 function updatePaths(svg) {
   svg.forEach(function(e) {
-     	e.selectAll('path.graticule').attr('d', geoPath);
+  	e.selectAll('path.graticule').attr('d', geoPath);
      	e.selectAll('path.land').attr('d', geoPath);
   });
 }
@@ -108,9 +109,9 @@ var svg = [];
 var world;
 var graticule;
 
-var width = 200,
-    height = 200,
-    scale = 100,
+var width = 400,
+    height = 400,
+    scale = 200,
     origin = {x: 55, y: -40};
 
 var v0, // Mouse position in Cartesian coordinates at start of drag gesture.
@@ -134,12 +135,6 @@ d3.json("world-110m.json", function(error, worldJSON) {
 
   svg1 = createMap("#map1");
   svg.push(svg1);
-
-  svg2 = createMap("#map2");
-  svg.push(svg2);
-
-  svg3 = createMap("#map3");
-  svg.push(svg3);
 
 });
 
