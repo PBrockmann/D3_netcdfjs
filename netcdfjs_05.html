@@ -130,6 +130,11 @@ oReq.onload = function(oEvent) {
 
     values = nj.array(values).reshape(jsize,isize);		//  a matrix with n rows and m columns, shape will be [n,m]. 
     values = values.slice([null, null, -1],null); 
+    values = values.slice([null, null, -1],null);       // read bottom to top
+
+	var right = values.slice(null,[isize-1,isize]);
+    values = nj.concatenate(right, nj.concatenate(values, right)); // extend 1 column right & left
+    
     values = values.flatten().tolist();
 
 //---------------------------------------
@@ -148,7 +153,7 @@ function redraw(lon0, lat0, projection) {
 
   var contours = d3.contours()
       .smooth(true)
-      .size([isize, jsize]);
+      .size([isize + 2, jsize]);
 
   var svg = d3.select("#map1");
   svg.selectAll("*").remove();
@@ -176,7 +181,7 @@ function redraw(lon0, lat0, projection) {
       coordinates: d3.merge(d.coordinates.map(function(polygon) {
         return polygon.map(function(ring) {
           return ring.map(function(point) {
-            return [point[0] / isize * 360 - 180, 90 - point[1] / jsize * 180];
+            return [point[0] / (isize + 2) * 360 - 180, 90 - point[1] / jsize * 180];
           }).reverse();
         });
       }))
@@ -229,8 +234,13 @@ function redraw(lon0, lat0, projection) {
     p.coordinates = p.coordinates
     .map(function(ring) {
       ring.pop();
+      ring = ring
+      .map(function(p) {
+      	var p0 = p[0] * (isize + 2) / isize;
+        return [p0, p[1]];
+      });
       ring = ring.filter(function(p) {
-        return Math.abs(p[0]) !== 180;
+        return Math.abs(p[0]) < 179.9999;
       });
       ring.push(ring[0]);
       return ring;
