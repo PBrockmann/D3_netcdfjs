@@ -181,6 +181,29 @@ function redraw(lon0, lat0, projection) {
         });
       }))
     };
+
+    // Add contact points with the antimeridian.
+    var epsilon = 1e-5;
+    p.coordinates = p.coordinates
+    .map(function(ring) {
+      ring.pop();
+      var r = [];
+      for (var i = 0, l = ring.length; i < l; i++) {
+        var p = ring[i];
+        if (p[0] === 180 && ring[(i+l-1)%l][0] < 180)
+        	r.push([p[0], p[1] + epsilon]);
+        if (p[0] === -180 && ring[(i+l-1)%l][0] > -180)
+        	r.push([p[0], p[1] - epsilon]);
+        r.push(p);
+        if (p[0] === 180 && ring[(i+1)%l][0] < 180)
+        	r.push([p[0], p[1] - epsilon]);
+        if (p[0] === -180 && ring[(i+1)%l][0] > -180)
+        	r.push([p[0], p[1] + epsilon]);
+      }
+      r.push(r[0]);
+      return r;
+    });
+
     // Record the y-intersections with the antimeridian.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
