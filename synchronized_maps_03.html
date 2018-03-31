@@ -49,7 +49,7 @@ body, html {
 <script src="js/d3-geo@1"></script>
 <script src="js/d3-geo-projection@2"></script>
 <script src="js/versor@0"></script>
-<script src="js/d3-legend.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.5/d3-legend.min.js"></script>
 
 </head>
 
@@ -128,7 +128,7 @@ function createMap(id, values) {
       .size([isize, jsize]);
 
   group
-   //.attr("class", "contour-stroke")
+   .attr("class", "contour-stroke")
    .selectAll("path")
    .data(contours(values).map(invert))
    .enter().append("path")
