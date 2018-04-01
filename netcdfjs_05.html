@@ -131,10 +131,20 @@ oReq.onload = function(oEvent) {
     values = nj.array(values).reshape(jsize,isize);		//  a matrix with n rows and m columns, shape will be [n,m]. 
     values = values.slice([null, null, -1],null);       // read bottom to top
 
-	var left = values.slice(null,[0,1]);
-    values = nj.concatenate(values, left); // copy left column to the right
-    
     values = values.flatten().tolist();
+
+    // torus: copy left column to the right
+    values = torus(values);
+    function torus(values) {
+      var v = new Float32Array(jsize * (isize+1));
+      for (var j = 0; j < jsize; j++) {
+        for (var i = 0; i < isize; i++) {
+          v[ j * (isize+1) + i ] = values[ j * isize + i ];
+        }
+        v[ j * (isize+1) + isize ] = values[ j * isize ];
+      }
+      return v;
+    }
 
 //---------------------------------------
 function redraw(lon0, lat0, projection) {
