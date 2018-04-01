@@ -19,7 +19,7 @@
 <script src="js/d3-scale@1"></script>
 <script src="js/d3-transition@1"></script>
 <script src="js/d3-zoom@1"></script>
-<script src="js/topojson@1"></script>
+<script src="js/topojson@3"></script>
 
 <style>
 html, body {
@@ -261,8 +261,17 @@ function redraw(lon0, lat0, projection) {
 
     // If the MultiPolygon is empty, treat it as the Sphere.
     return p.coordinates.length
-        ? {type: "Polygon", coordinates: p.coordinates, value: d.value}
+        ? simplify({type: "Polygon", coordinates: p.coordinates, value: d.value}, 0.01)
         : {type: "Sphere", value: d.value};
+  }
+
+  function simplify(polygon, s) {
+    var topology = topojson.topology({polygon: polygon});
+    topology = topojson.simplify(topojson.presimplify(topology), s);
+    topology = topojson.filter(topology, r => (console.log(r, topology.arcs[r[0]]), topology.arcs[r[0]].length > 2));
+    var p = topojson.feature(topology, topology.objects.polygon);
+    p.value = polygon.value;
+    return p;
   }
 
   g.append("path")
