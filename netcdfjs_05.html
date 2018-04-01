@@ -133,9 +133,9 @@ oReq.onload = function(oEvent) {
 
     values = values.flatten().tolist();
 
-    // torus: copy left column to the right
-    values = torus(values);
-    function torus(values) {
+    // cylinder: copy left column to the right
+    values = cylinder(values);
+    function cylinder(values) {
       var v = new Float32Array(jsize * (isize+1));
       for (var j = 0; j < jsize; j++) {
         for (var i = 0; i < isize; i++) {
