@@ -19,7 +19,7 @@
 <script src="js/d3-scale@1"></script>
 <script src="js/d3-transition@1"></script>
 <script src="js/d3-zoom@1"></script>
-<script src="js/topojson@1"></script>
+<script src="js/topojson@3"></script>
 
 <style>
 html, body {
@@ -129,8 +129,22 @@ oReq.onload = function(oEvent) {
     //console.log(axis0);
 
     values = nj.array(values).reshape(jsize,isize);		//  a matrix with n rows and m columns, shape will be [n,m]. 
-    values = values.slice([null, null, -1],null); 
+    values = values.slice([null, null, -1],null);       // read bottom to top
+
     values = values.flatten().tolist();
+
+    // cylinder: copy left column to the right
+    values = cylinder(values);
+    function cylinder(values) {
+      var v = new Float32Array(jsize * (isize+1));
+      for (var j = 0; j < jsize; j++) {
+        for (var i = 0; i < isize; i++) {
+          v[ j * (isize+1) + i ] = values[ j * isize + i ];
+        }
+        v[ j * (isize+1) + isize ] = values[ j * isize ];
+      }
+      return v;
+    }
 
 //---------------------------------------
 function redraw(lon0, lat0, projection) {
@@ -148,7 +162,7 @@ function redraw(lon0, lat0, projection) {
 
   var contours = d3.contours()
       .smooth(true)
-      .size([isize, jsize]);
+      .size([isize + 1, jsize]);
 
   var svg = d3.select("#map1");
   svg.selectAll("*").remove();
@@ -176,17 +190,40 @@ function redraw(lon0, lat0, projection) {
       coordinates: d3.merge(d.coordinates.map(function(polygon) {
         return polygon.map(function(ring) {
           return ring.map(function(point) {
-            return [point[0] / isize * 360 - 180, 90 - point[1] / jsize * 180];
+            return [point[0] / (isize + 1) * 360 - 180, 90 - point[1] / jsize * 180];
           }).reverse();
         });
       }))
     };
+
+    // Add contact points with the antimeridian.
+    var epsilon = 1e-5;
+    p.coordinates = p.coordinates
+    .map(function(ring) {
+      ring.pop();
+      var r = [];
+      for (var i = 0, l = ring.length; i < l; i++) {
+        var p = ring[i];
+        if (p[0] === 180 && ring[(i+l-1)%l][0] < 180)
+        	r.push([p[0], p[1] + epsilon]);
+        if (p[0] === -180 && ring[(i+l-1)%l][0] > -180)
+        	r.push([p[0], p[1] - epsilon]);
+        r.push(p);
+        if (p[0] === 180 && ring[(i+1)%l][0] < 180)
+        	r.push([p[0], p[1] - epsilon]);
+        if (p[0] === -180 && ring[(i+1)%l][0] > -180)
+        	r.push([p[0], p[1] + epsilon]);
+      }
+      r.push(r[0]);
+      return r;
+    });
+
     // Record the y-intersections with the antimeridian.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
-	if (p[0] === -180 || p[0] === 180) {
-		shared[p[1]] |= p[0] === -180 ? 1 : 2;
-	}
+        if (p[0] === -180 || p[0] === 180) {
+          shared[p[1]] |= p[0] === -180 ? 1 : 2;
+        }
       });
     });
 
@@ -201,10 +238,40 @@ function redraw(lon0, lat0, projection) {
 
     p = d3.geoStitch(p);
 
+    // After stitching remove the shared points -- they are off
+    // see https://github.com/d3/d3-contour/issues/25
+    p.coordinates = p.coordinates
+    .map(function(ring) {
+      ring.pop();
+      ring = ring
+      .map(function(p) {
+      	var p0 = (p[0] + 180) * (isize + 1) / isize - 180;
+        return [p0, p[1]];
+      });
+      ring = ring.filter(function(p) {
+        return Math.abs(p[0]) < 179.9999;
+      });
+      ring.push(ring[0]);
+      return ring;
+    })
+    .filter(function(ring) {
+      return ring.length > 0;
+    });
+
+
     // If the MultiPolygon is empty, treat it as the Sphere.
     return p.coordinates.length
-        ? {type: "Polygon", coordinates: p.coordinates, value: d.value}
+        ? simplify({type: "Polygon", coordinates: p.coordinates, value: d.value}, 0.01)
         : {type: "Sphere", value: d.value};
+  }
+
+  function simplify(polygon, s) {
+    var topology = topojson.topology({polygon: polygon});
+    topology = topojson.simplify(topojson.presimplify(topology), s);
+    topology = topojson.filter(topology, r => (console.log(r, topology.arcs[r[0]]), topology.arcs[r[0]].length > 2));
+    var p = topojson.feature(topology, topology.objects.polygon);
+    p.value = polygon.value;
+    return p;
   }
 
   g.append("path")
