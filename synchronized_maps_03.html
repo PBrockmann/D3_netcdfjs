@@ -38,6 +38,11 @@ body, html {
   left: 960px;
   font-size: 12px;
 }
+#smooth { 
+  position: absolute;
+  top: 500px;
+  left: 60px;
+}
 </style>
 
 <script src="https://d3js.org/d3.v4.min.js"></script>
@@ -49,7 +54,8 @@ body, html {
 <script src="js/d3-geo@1"></script>
 <script src="js/d3-geo-projection@2"></script>
 <script src="js/versor@0"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.5/d3-legend.min.js"></script>
+<script src="js/d3-legend.min.js"></script>
+<script src="js/topojson@3"></script>
 
 </head>
 
@@ -67,6 +73,11 @@ body, html {
 
 <div id="legend" class="legend">
 </div>
+
+<select id="smooth">
+ <option value="true">contours smoothed</option>
+ <option value="false" selected>contours not smoothed</option>
+</select>
 
 <script>
 
@@ -109,7 +120,7 @@ function updatePaths(svg) {
 }
 
 //--------------------------------------
-function createMap(id, values) {
+function createMap(id, values, smooth) {
 
   var svg = d3.select('body').select(id).append('svg')
     .attr('width', width)
@@ -119,13 +130,14 @@ function createMap(id, values) {
 
   var extent = d3.extent(values);
    
-  console.log(d3.extent(values));
-  console.log(d3.range(Math.floor(extent[0]/delta)*delta, Math.ceil(extent[1]/delta)*delta, delta));
-	
+  //console.log(d3.extent(values));
+  //console.log(d3.range(Math.floor(extent[0]/delta)*delta, Math.ceil(extent[1]/delta)*delta, delta));
+
   var contours = d3.contours()
       .thresholds(d3.range(Math.floor(extent[0]/delta)*delta, Math.ceil(extent[1]/delta)*delta, delta))
-      .smooth(true)
-      .size([isize, jsize]);
+      //.smooth(true)
+      .smooth(smooth)
+      .size([isize+1, jsize]);
 
   group
    .attr("class", "contour-stroke")
@@ -162,11 +174,34 @@ function invert(d) {
       coordinates: d3.merge(d.coordinates.map(function(polygon) {
         return polygon.map(function(ring) {
           return ring.map(function(point) {
-            return [point[0] / isize * 360 - 180, 90 - point[1] / jsize * 180];
+            return [point[0] / (isize + 1) * 360 - 180, 90 - point[1] / jsize * 180];
           }).reverse();
         });
       }))
     };
+
+    // Add contact points with the antimeridian.
+    var epsilon = 1e-5;
+    p.coordinates = p.coordinates
+    .map(function(ring) {
+      ring.pop();
+      var r = [];
+      for (var i = 0, l = ring.length; i < l; i++) {
+        var p = ring[i];
+        if (p[0] === 180 && ring[(i+l-1)%l][0] < 180)
+                r.push([p[0], p[1] + epsilon]);
+        if (p[0] === -180 && ring[(i+l-1)%l][0] > -180)
+                r.push([p[0], p[1] - epsilon]);
+        r.push(p);
+        if (p[0] === 180 && ring[(i+1)%l][0] < 180)
+                r.push([p[0], p[1] - epsilon]);
+        if (p[0] === -180 && ring[(i+1)%l][0] > -180)
+                r.push([p[0], p[1] + epsilon]);
+      }
+      r.push(r[0]);
+      return r;
+    });
+
     // Record the y-intersections with the antimeridian.
     p.coordinates.forEach(function(ring) {
       ring.forEach(function(p) {
@@ -187,16 +222,49 @@ function invert(d) {
 
     p = d3.geoStitch(p);
 
+    // After stitching remove the shared points -- they are off
+    // see https://github.com/d3/d3-contour/issues/25
+    p.coordinates = p.coordinates
+    .map(function(ring) {
+      ring.pop();
+      ring = ring
+      .map(function(p) {
+        var p0 = (p[0] + 180) * (isize + 1) / isize - 180;
+        return [p0, p[1]];
+      });
+      ring = ring.filter(function(p) {
+        return Math.abs(p[0]) < 179.9999;
+      });
+      ring.push(ring[0]);
+      return ring;
+    })
+    .filter(function(ring) {
+      return ring.length > 0;
+    });
+
+
     // If the MultiPolygon is empty, treat it as the Sphere.
     return p.coordinates.length
-        ? {type: "Polygon", coordinates: p.coordinates, value: d.value}
+        ? simplify({type: "Polygon", coordinates: p.coordinates, value: d.value}, 0.01)
         : {type: "Sphere", value: d.value};
+
+}
+
+//==========================================
+function simplify(polygon, s) {
+    var topology = topojson.topology({polygon: polygon});
+    topology = topojson.simplify(topojson.presimplify(topology), s);
+    topology = topojson.filter(topology, r => (topology.arcs[r[0]].length > 2));
+    var p = topojson.feature(topology, topology.objects.polygon);
+    p.value = polygon.value;
+    return p;
 }
 
 //==========================================
 function reverseVar(values) {
     values = nj.array(values).reshape(jsize,isize);             //  a matrix with n rows and m columns, shape will be [n,m].
-    values = values.slice([null, null, -1],null);
+    values = values.slice([null, null, -1],null);               // read bottom to top
+    values = nj.concatenate(values, values.slice(null,[0,1]));  // duplicate left column to the right
     values = values.flatten().tolist();
 
     return values;
@@ -269,10 +337,10 @@ oReq.onload = function(oEvent) {
       world = topojson.feature(worldJSON, worldJSON.objects.land);
       graticule = d3.geoGraticule();
    
-      svg1 = createMap("#map1", valuesVar1);
+      svg1 = createMap("#map1", valuesVar1, false);
       svg.push(svg1);
     
-      svg2 = createMap("#map2", valuesVar2);
+      svg2 = createMap("#map2", valuesVar2, false);
       svg.push(svg2);
 
       svgLegend = d3.select("#legend").append('svg')
@@ -288,11 +356,24 @@ oReq.onload = function(oEvent) {
                            .ascending(true)
                            .labelAlign('start')
                            .scale(color);
-      console.log(color);
       svgLegend.select(".legendLinear")
                         .call(legendLinear);      
     
    });
+
+
+   var menu = d3.select("#smooth")
+    .on("change", smoothChanged);
+
+  function smoothChanged() {
+      var smooth = (this.options[this.selectedIndex].value === 'true');
+      d3.selectAll(".map svg").remove();
+      svg = [];
+      svg1 = createMap("#map1", valuesVar1, smooth);
+      svg.push(svg1);
+      svg2 = createMap("#map2", valuesVar2, smooth);
+      svg.push(svg2);
+  }
 
   //====================================================================================
   }
@@ -304,3 +385,5 @@ oReq.send(); //start process
 
 </script>
 
+</body>
+</html>
