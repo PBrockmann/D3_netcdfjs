@@ -128,13 +128,15 @@ oReq.onload = function(oEvent) {
     console.log(values.length);
     //console.log(axis0);
 
-    values = nj.array(values).reshape(jsize,isize);		//  a matrix with n rows and m columns, shape will be [n,m]. 
+    values = nj.array(values).reshape(jsize,isize);     //  a matrix with n rows and m columns, shape will be [n,m]. 
     values = values.slice([null, null, -1],null);       // read bottom to top
-
+    // Folowing line will be done with pure js below (for a futur geoContours.cylinder function)
+    values = nj.concatenate(values, values.slice(null,[0,1]));  // duplicate left column to the right
     values = values.flatten().tolist();
 
     // cylinder: copy left column to the right
-    values = cylinder(values);
+    
+    //values = cylinder(values);
     function cylinder(values) {
       var v = new Float32Array(jsize * (isize+1));
       for (var j = 0; j < jsize; j++) {
