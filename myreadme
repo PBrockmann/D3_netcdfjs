@@ -26,6 +26,9 @@ https://github.com/GeoTIFF/georaster-layer-for-leaflet
 https://github.com/IHCantabria/Leaflet.CanvasLayer.Field
 https://github.com/stuartmatthews/leaflet-geotiff
 
+D3.geo : Spherical arcs rather than straight lines for parallels ?
+https://stackoverflow.com/questions/25415885/d3-geo-spherical-arcs-rather-than-straight-lines-for-parallels
+
 #=================================================================================
 Tested with firefox and google-chrome
 
